@@ -7,6 +7,7 @@ import org.hibernate.SessionFactory;
 import org.hibernate.cfg.Configuration;
 import org.hibernate.cfg.Environment;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Properties;
 
@@ -56,25 +57,39 @@ public class Main {
                 .setProperties(properties)
                 .buildSessionFactory();
 
-         actorDAO = new ActorDAO(sessionFactory);
-         addressDAO = new AddressDAO(sessionFactory);
-         categoryDAO = new CategoryDAO(sessionFactory);
-         cityDAO = new CityDAO(sessionFactory);
-         countryDAO = new CountryDAO(sessionFactory);
-         customerDAO = new CustomerDAO(sessionFactory);
-         filmDAO = new FilmDAO(sessionFactory);
-         filmTextDAO = new FilmTextDAO(sessionFactory);
-         inventoryDAO = new InventoryDAO(sessionFactory);
-         languageDAO = new LanguageDAO(sessionFactory);
-         paymentDAO = new PaymentDAO(sessionFactory);
-         rentalDAO = new RentalDAO(sessionFactory);
-         staffDAO = new StaffDAO(sessionFactory);
-         storeDAO = new StoreDAO(sessionFactory);
+        actorDAO = new ActorDAO(sessionFactory);
+        addressDAO = new AddressDAO(sessionFactory);
+        categoryDAO = new CategoryDAO(sessionFactory);
+        cityDAO = new CityDAO(sessionFactory);
+        countryDAO = new CountryDAO(sessionFactory);
+        customerDAO = new CustomerDAO(sessionFactory);
+        filmDAO = new FilmDAO(sessionFactory);
+        filmTextDAO = new FilmTextDAO(sessionFactory);
+        inventoryDAO = new InventoryDAO(sessionFactory);
+        languageDAO = new LanguageDAO(sessionFactory);
+        paymentDAO = new PaymentDAO(sessionFactory);
+        rentalDAO = new RentalDAO(sessionFactory);
+        staffDAO = new StaffDAO(sessionFactory);
+        storeDAO = new StoreDAO(sessionFactory);
     }
 
     public static void main(String[] args) {
         Main main = new Main();
-        Customer customer = main.createCustomer();
+        //Customer customer = main.createCustomer();
+
+        main.customerReturnInventoryToStore();
+    }
+
+    private void customerReturnInventoryToStore() {
+        try (Session session = sessionFactory.getCurrentSession()) {
+            session.beginTransaction();
+
+            Rental rental = rentalDAO.getAnyUnreturnedRental();
+            rental.setReturnDate(LocalDateTime.now());
+            rentalDAO.save(rental);
+
+            session.getTransaction().commit();
+        }
     }
 
     private Customer createCustomer() {
