@@ -7,9 +7,13 @@ import org.hibernate.SessionFactory;
 import org.hibernate.cfg.Configuration;
 import org.hibernate.cfg.Environment;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.time.Year;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Properties;
+import java.util.Set;
 
 public class Main {
     private final SessionFactory sessionFactory;
@@ -75,9 +79,81 @@ public class Main {
 
     public static void main(String[] args) {
         Main main = new Main();
-        //Customer customer = main.createCustomer();
-
+        Customer customer = main.createCustomer();
         main.customerReturnInventoryToStore();
+        main.customerRentInventory(customer);
+        main.newFilmWasMade();
+    }
+
+    private void newFilmWasMade() {
+        try (Session session = sessionFactory.getCurrentSession()) {
+            session.beginTransaction();
+
+            Language language = languageDAO.getItems(0, 20).stream()
+                    .unordered()
+                    .findAny()
+                    .get();
+            List<Category> categories = categoryDAO.getItems(0, 5);
+            List<Actor> actors = actorDAO.getItems(0, 20);
+
+            Film film = new Film();
+            film.setActors(new HashSet<>(actors));
+            film.setRating(Rating.NC17);
+            film.setSpecialFeatures(Set.of(Feature.TRAILERS, Feature.COMMENTARIES));
+            film.setLength((short) 75);
+            film.setReplacementCost(BigDecimal.valueOf(27.77));
+            film.setRentalRate(BigDecimal.valueOf(7.77));
+            film.setLanguage(language);
+            film.setDescription("New film 2023");
+            film.setTitle("Back in time");
+            film.setRentalDuration((byte) 3);
+            film.setOriginalLanguage(language);
+            film.setCategories(new HashSet<>(categories));
+            film.setYear(Year.now());
+            filmDAO.save(film);
+
+            FilmText filmText = new FilmText();
+            filmText.setFilm(film);
+            filmText.setId(film.getId());
+            filmText.setDescription("New film 2023");
+            filmText.setTitle("Back in time");
+            filmTextDAO.save(filmText);
+
+            session.getTransaction().commit();
+        }
+    }
+
+    private void customerRentInventory(Customer customer) {
+        try (Session session = sessionFactory.getCurrentSession()) {
+            session.beginTransaction();
+
+            Film film = filmDAO.getFirstAvailableFilmForRent();
+            Store store = storeDAO.getItems(0, 1).get(0);
+
+            Inventory inventory = new Inventory();
+            inventory.setFilm(film);
+            inventory.setStore(store);
+            inventoryDAO.save(inventory);
+
+            Staff staff = store.getStaff();
+
+            Rental rental = new Rental();
+            rental.setRentalDate(LocalDateTime.now());
+            rental.setCustomer(customer);
+            rental.setInventory(inventory);
+            rental.setStaff(staff);
+            rentalDAO.save(rental);
+
+            Payment payment = new Payment();
+            payment.setRental(rental);
+            payment.setPaymentDate(LocalDateTime.now());
+            payment.setCustomer(customer);
+            payment.setAmount(BigDecimal.valueOf(7.77));
+            payment.setStaff(staff);
+            paymentDAO.save(payment);
+
+            session.getTransaction().commit();
+        }
     }
 
     private void customerReturnInventoryToStore() {
@@ -97,12 +173,12 @@ public class Main {
             session.beginTransaction();
 
             Store store = storeDAO.getItems(0, 1).get(0);
-            City city = cityDAO.getByName("Kragujevac");
+            City city = cityDAO.getByName("Santa Rosa");
             Address address = new Address();
-            address.setAddress("42 Random St");
-            address.setPhone("123-345-6789");
+            address.setAddress("42 Heaven St");
+            address.setPhone("1233457777");
             address.setCity(city);
-            address.setDistrict("Random County");
+            address.setDistrict("Orange County");
             addressDAO.save(address);
 
             Customer customer = new Customer();
@@ -110,8 +186,8 @@ public class Main {
             customer.setEmail("ran@random.org");
             customer.setAddress(address);
             customer.setStore(store);
-            customer.setFirstName("Boris");
-            customer.setLastName("Johnsonov");
+            customer.setFirstName("Nick");
+            customer.setLastName("Jo-Ho-Ho");
             customerDAO.save(customer);
 
             session.getTransaction().commit();
